@@ -134,11 +134,10 @@ class Siglent_SDG_2042X(Siglent_SDG_20xx):
 # to provide default values to items of the dictionary-type kwarg
 # with the given key
 def _provide_defaults_to_dict_kwarg(
-    kwargs: Dict[str, Any], key: str, default_value_dict: dict
-) -> dict:
-    if key in kwargs:
-        dict_item = kwargs[key]
-        default_value_dict = ChainMap(dict_item, default_value_dict)
+    kwargs: Dict[str, Any], kwarg_name: str, default_values: dict
+) -> Dict[str, Any]:
+    if kwarg_name in kwargs:
+        dict_item = kwargs[kwarg_name]
+        default_values = ChainMap(dict_item, default_values)
 
-    result = {key: default_value_dict}
-    return result
+    return {kwarg_name: default_values}

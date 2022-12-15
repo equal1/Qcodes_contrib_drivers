@@ -19,21 +19,9 @@ def identity(x: T) -> T:
 def group_by_two(list_: Iterable[T]) -> Iterator[Tuple[T, T]]:
     return zip(*2 * (iter(list_),))
 
-
-def iter_str_split(string: str, *, sep: str, start: int = 0) -> Iterator[str]:
-    if slen := len(sep):
-        last: int = start
-        while (next := string.find(sep, last)) != -1:
-            yield string[last:next]
-            last = next + slen
-        yield string[last:]
-    else:
-        yield from iter(string)
-
-
 def find_first_by_key(
     search_key: str,
-    items: Iterator[Tuple[str, str]],
+    items: Iterable[Tuple[str, str]],
     *,
     transform_found: Callable[[str], Any] = identity,
     not_found=None,
@@ -63,14 +51,14 @@ def strip_unit(
 
     return lambda _s: then(_s.removesuffix(_suffix))
 
-def _merge_dicts_newpy(*dicts: dict) -> dict:
+def merge_dicts(*dicts: dict) -> dict:
     dest = dict()
     for src in dicts:
         dest |= src
     return dest
 
-def _merge_dicts_oldpy(*dicts: dict) -> dict:
-    if not len(dict):
+def _merge_dicts_compat(*dicts: dict) -> dict:
+    if not len(dicts):
         return dict()
     dicts = iter(dicts)
     dest = dict(next(dicts))
@@ -80,11 +68,9 @@ def _merge_dicts_oldpy(*dicts: dict) -> dict:
     return dest
 
 try:
-    {} | {}
-    merge_dicts = _merge_dicts_newpy
+    {} | {}  # since 3.9
 except TypeError:
-    merge_dicts = _merge_dicts_oldpy
-    del _merge_dicts_newpy
+    merge_dicts = _merge_dicts_compat
 
 def extract_oddfirst_field(
     result_prefix_len: int,
@@ -94,7 +80,7 @@ def extract_oddfirst_field(
     else_default=None,
 ) -> Callable[[str], Any]:
     def result_func(response: str):
-        response_items = iter_str_split(response, start=result_prefix_len, sep=",")
+        response_items = iter(response[result_prefix_len:].split(","))
         first = next(response_items)
         if name is None:
             return then(first)
@@ -117,7 +103,7 @@ def extract_first_state_or_group_prefixed_field(
     else_default=None,
 ) -> Callable[[str], Any]:
     def result_func(response: str):
-        response_items = iter_str_split(response, start=_result_prefix_len, sep=",")
+        response_items = iter(response[_result_prefix_len:].split(","))
 
         try:
             # STATE ON/OFF
@@ -151,7 +137,7 @@ def extract_first_state_or_group_prefixed_field(
 
 
 def extract_regular_field(
-    result_prefix_len: int,
+    _result_prefix_len: int,
     name: str,
     *,
     then: Callable[[str], Any] = identity,
@@ -160,7 +146,7 @@ def extract_regular_field(
     def result_func(response: str):
         return find_first_by_key(
             name,
-            group_by_two(iter_str_split(response, start=result_prefix_len, sep=",")),
+            group_by_two(response[_result_prefix_len:].split(",")),
             transform_found=then,
             not_found=else_default,
         )
@@ -185,7 +171,7 @@ def extract_X_or_non_X_field(
         def result_func(response: str):
             items = takewhile(
                 lambda str: str != _X,
-                iter_str_split(response, start=_result_prefix_len, sep=","),
+                iter(response[_result_prefix_len:].split(",")),
             )
 
             return find_first_by_key(
@@ -199,7 +185,7 @@ def extract_X_or_non_X_field(
         name = name[len(_X) + 1 :]
 
         def result_func(response: str):
-            items = iter_str_split(response, start=_result_prefix_len, sep=",")
+            items = iter(response[_result_prefix_len:].split(",")),
 
             for item in items:
                 if item == _X:
