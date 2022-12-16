@@ -19,6 +19,7 @@ def identity(x: T) -> T:
 def group_by_two(list_: Iterable[T]) -> Iterator[Tuple[T, T]]:
     return zip(*2 * (iter(list_),))
 
+
 def find_first_by_key(
     search_key: str,
     items: Iterable[Tuple[str, str]],
@@ -51,11 +52,13 @@ def strip_unit(
 
     return lambda _s: then(_s.removesuffix(_suffix))
 
+
 def merge_dicts(*dicts: dict) -> dict:
     dest = dict()
     for src in dicts:
         dest |= src
     return dest
+
 
 def _merge_dicts_compat(*dicts: dict) -> dict:
     if not len(dicts):
@@ -67,24 +70,34 @@ def _merge_dicts_compat(*dicts: dict) -> dict:
             dest[k] = v
     return dest
 
+
 try:
     {} | {}  # since 3.9
 except TypeError:
     merge_dicts = _merge_dicts_compat
 
-def extract_oddfirst_field(
-    result_prefix_len: int,
+
+def extract_standalone_first_field_or_regular_field(
+    _result_prefix_len: int,
+    /,
     name: Optional[str],
     *,
     then: Callable[[str], Any] = identity,
     else_default=None,
 ) -> Callable[[str], Any]:
-    def result_func(response: str):
-        response_items = iter(response[result_prefix_len:].split(","))
-        first = next(response_items)
-        if name is None:
+
+    if name is None:
+
+        def result_func(response: str):
+            response_items = iter(response[_result_prefix_len:].split(","))
+            first = next(response_items)
             return then(first)
-        else:
+
+    else:
+
+        def result_func(response: str):
+            response_items = iter(response[_result_prefix_len:].split(","))
+            next(response_items)
             return find_first_by_key(
                 name,
                 group_by_two(response_items),
@@ -95,8 +108,9 @@ def extract_oddfirst_field(
     return result_func
 
 
-def extract_first_state_or_group_prefixed_field(
+def extract_first_state_field_or_any_group_prefixed_field(
     _result_prefix_len: int,
+    /,
     name: str,
     *,
     then: Callable[[str], Any] = identity,
@@ -138,6 +152,7 @@ def extract_first_state_or_group_prefixed_field(
 
 def extract_regular_field(
     _result_prefix_len: int,
+    /,
     name: str,
     *,
     then: Callable[[str], Any] = identity,
@@ -157,20 +172,21 @@ def extract_regular_field(
 # ---------------------------------------------------------------
 
 
-def extract_X_or_non_X_field(
-    _X: str,
-    _result_prefix_len,
+def extract_regular_field_before_group_or_group_prefixed_field(
+    _group: str,
+    _result_prefix_len: int,
+    /,
     name: str,
     *,
     then: Callable[[str], Any] = identity,
     else_default=None,
 ) -> Callable[[str], Any]:
 
-    if not name.startswith(_X + ","):
+    if not name.startswith(_group + ","):
 
         def result_func(response: str):
             items = takewhile(
-                lambda str: str != _X,
+                lambda str: str != _group,
                 iter(response[_result_prefix_len:].split(",")),
             )
 
@@ -182,13 +198,13 @@ def extract_X_or_non_X_field(
             )
 
     else:
-        name = name[len(_X) + 1 :]
+        name = name[len(_group) + 1 :]
 
         def result_func(response: str):
-            items = iter(response[_result_prefix_len:].split(",")),
+            items = (iter(response[_result_prefix_len:].split(",")),)
 
             for item in items:
-                if item == _X:
+                if item == _group:
                     break
             else:
                 return else_default

@@ -97,7 +97,7 @@ class SiglentSDGChannel(SiglentChannel):
         )
 
         extract_outp_field = functools.partial(
-            _fields.extract_oddfirst_field, result_prefix_len
+            _fields.extract_standalone_first_field_or_regular_field, result_prefix_len
         )
 
         self.add_parameter(
@@ -502,7 +502,7 @@ class SiglentSDGChannel(SiglentChannel):
         )
 
         extract_mdwv_field = functools.partial(
-            _fields.extract_first_state_or_group_prefixed_field,
+            _fields.extract_first_state_field_or_any_group_prefixed_field,
             result_prefix_len,
         )
 
@@ -1033,7 +1033,7 @@ class SiglentSDGChannel(SiglentChannel):
         )
 
         extract_swwv_field = functools.partial(
-            _fields.extract_X_or_non_X_field,
+            _fields.extract_regular_field_before_group_or_group_prefixed_field,
             "CARR",
             result_prefix_len,
         )
@@ -1398,6 +1398,7 @@ class SiglentSDGChannel(SiglentChannel):
     # ---------------------------------------------------------------
 
     def _add_burst_wave_parameters(self, *, extra_params: Set[str]):
+        _none_to_empty = _add_none_to_empty_val_mapping
 
         ch_command = self._ch_num_prefix + "BTWV"
         set_cmd_ = ch_command + " "
@@ -1406,7 +1407,7 @@ class SiglentSDGChannel(SiglentChannel):
         result_prefix_len = len(ch_command) + 1
 
         extract_btwv_field = functools.partial(
-            _fields.extract_X_or_non_X_field,
+            _fields.extract_regular_field_before_group_or_group_prefixed_field,
             "CARR",
             result_prefix_len,
         )
@@ -1472,7 +1473,7 @@ class SiglentSDGChannel(SiglentChannel):
         self.add_parameter(
             "burst_mode",
             label="Burst mode",
-            val_mapping=_add_none_to_empty_val_mapping(
+            val_mapping=_none_to_empty(
                 {
                     "gate": "GATE",
                     "ncyc": "NCYC",
@@ -1488,7 +1489,7 @@ class SiglentSDGChannel(SiglentChannel):
         self.add_parameter(
             "burst_trigger_source",
             label="Burst trigger source",
-            val_mapping=_add_none_to_empty_val_mapping(
+            val_mapping=_none_to_empty(
                 {
                     "external": "EXT",
                     "internal": "INT",
@@ -1520,7 +1521,7 @@ class SiglentSDGChannel(SiglentChannel):
         self.add_parameter(
             "burst_gate_polarity",
             label="Burst gate polarity",
-            val_mapping=_add_none_to_empty_val_mapping(
+            val_mapping=_none_to_empty(
                 {
                     "negative": "NEG",
                     "positive": "POS",
@@ -1535,7 +1536,7 @@ class SiglentSDGChannel(SiglentChannel):
             self.add_parameter(
                 "burst_trigger_output_mode",
                 label="(Burst) trigger output mode",
-                val_mapping=_add_none_to_empty_val_mapping(
+                val_mapping=_none_to_empty(
                     {
                         "rise": "RISE",
                         "fall": "FALL",
@@ -1552,7 +1553,7 @@ class SiglentSDGChannel(SiglentChannel):
             self.add_parameter(
                 "burst_trigger_edge",
                 label="Burst trigger edge",
-                val_mapping=_add_none_to_empty_val_mapping(
+                val_mapping=_none_to_empty(
                     {
                         "rise": "RISE",
                         "fall": "FALL",
@@ -1591,7 +1592,7 @@ class SiglentSDGChannel(SiglentChannel):
 
         # CARR
 
-        CARR_WVTP_VALS = _add_none_to_empty_val_mapping(
+        CARR_WVTP_VALS = _none_to_empty(
             {
                 "sine": "SINE",
                 "square": "SQUARE",
@@ -1845,7 +1846,7 @@ class SiglentSDGChannel(SiglentChannel):
         )
 
         extract_sync_field = functools.partial(
-            _fields.extract_oddfirst_field, result_prefix_len
+            _fields.extract_standalone_first_field_or_regular_field, result_prefix_len
         )
 
         self.add_parameter(
