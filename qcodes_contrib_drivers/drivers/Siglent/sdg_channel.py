@@ -1,33 +1,26 @@
+import functools
 from collections import ChainMap
 from enum import Enum
 from functools import partial
-import functools
 from itertools import takewhile
 from typing import (
     Any,
-    Callable,
     Dict,
-    Iterable,
-    Iterator,
-    List,
     Mapping,
     Optional,
     Set,
     Tuple,
-    TypeVar,
     Union,
 )
 
 from qcodes.instrument import InstrumentBase
 from qcodes.parameters import Group, GroupParameter, Parameter
+from qcodes.parameters import create_on_off_val_mapping as _create_on_off_val_mapping
 from qcodes.validators.validators import Enum as EnumVals
 from qcodes.validators.validators import Ints, MultiTypeOr, Numbers
 
-from qcodes.parameters import create_on_off_val_mapping as _create_on_off_val_mapping
-
-from .sdx import SiglentChannel, SiglentSDx
-
 from . import _sdg_response_fields as _fields
+from .sdx import SiglentChannel, SiglentSDx
 
 _substr_from = _fields.substr_from
 _strip_unit = _fields.strip_unit
@@ -43,7 +36,7 @@ def _add_none_to_empty_val_mapping(*val_mappings: Dict) -> Dict:
 
 class SiglentSDGChannel(SiglentChannel):
     def __init__(
-        self, parent: InstrumentBase, name: str, channel_number: int, **kwargs
+        self, parent: SiglentSDx, name: str, channel_number: int, **kwargs
     ):
         super().__init__(parent, name, channel_number)
         self._ch_num_prefix = (
@@ -109,14 +102,23 @@ class SiglentSDGChannel(SiglentChannel):
             get_parser=extract_outp_field(None),
         )
 
+        def _convert_load_value(value: str) -> Union[float, str]:
+            if value == "HZ":
+                return value
+            try:
+                return int(value)
+            except ValueError:
+                pass
+            return value
+
         self.add_parameter(
             "load",
             label="Output load",
             unit="\N{OHM SIGN}",
-            vals=MultiTypeOr(Numbers(50, 1e5), EnumVals("HZ")),
+            vals=MultiTypeOr(Ints(50, 100_000), EnumVals("HZ")),
             set_cmd=set_cmd_ + "LOAD,{}",
             get_cmd=get_cmd,
-            get_parser=extract_outp_field("LOAD"),
+            get_parser=extract_outp_field("LOAD", then=_convert_load_value),
         )
 
         if "POWERON_STATE" in extra_params:
