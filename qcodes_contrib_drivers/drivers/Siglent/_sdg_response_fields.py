@@ -56,25 +56,8 @@ def strip_unit(
 def merge_dicts(*dicts: dict) -> dict:
     dest = dict()
     for src in dicts:
-        dest |= src
+        dest.update(src)
     return dest
-
-
-def _merge_dicts_compat(*dicts: dict) -> dict:
-    if not len(dicts):
-        return dict()
-    dicts = iter(dicts)
-    dest = dict(next(dicts))
-    for src in dicts:
-        for k, v in src.items():
-            dest[k] = v
-    return dest
-
-
-try:
-    {} | {}  # since 3.9
-except TypeError:
-    merge_dicts = _merge_dicts_compat
 
 
 def extract_standalone_first_field_or_regular_field(
