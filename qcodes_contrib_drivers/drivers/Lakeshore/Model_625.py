@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
 
 
 from qcodes import VisaInstrument
@@ -15,12 +15,14 @@ class Lakeshore625(VisaInstrument):
 
     Args:
         name (str): a name for the instrument
-        coil_constant (float): Coil contant of magnet, in untis of T/A
-        field_ramp_rate (float): Magnetic field ramp rate, in units of T/min
+        coil_constant (float): Coil contant of magnet, in untis of T/A 
+        - if passed `None`, value already set in instrument will be read and used
+        field_ramp_rate (float | None): Magnetic field ramp rate, in units of T/min
+        - if passed `None`, value already set in instrument will be read and used
         address (str): VISA address of the device
     """
 
-    def __init__(self, name: str, coil_constant: float,  field_ramp_rate: float, address: str,
+    def __init__(self, name: str, coil_constant: Optional[float],  field_ramp_rate: Optional[float], address: str,
                  reset: bool=False, terminator:str='', **kwargs) -> None:
 
         super().__init__(name, address, terminator=terminator, **kwargs)
@@ -28,6 +30,8 @@ class Lakeshore625(VisaInstrument):
         # Add reset function
         self.add_function('reset', call_cmd='*RST')
         if reset:
+            if coil_constant is None or field_ramp_rate is None:
+                raise TypeError("reset is not allowed unless 'coil_constant' and 'field_ramp_rate' specified")
             self.reset()
 
         # Add power supply parameters
@@ -178,8 +182,15 @@ class Lakeshore625(VisaInstrument):
         self.coil_constant_unit('T/A')
 
         # assign init parameters
-        self.coil_constant(coil_constant)
-        self.field_ramp_rate(field_ramp_rate)
+        if coil_constant is not None:
+            self.coil_constant(coil_constant)
+        else:
+            self.coil_constant.get()
+
+        if field_ramp_rate is not None:
+            self.field_ramp_rate(field_ramp_rate)
+        else:
+            self.field_ramp_rate.get()
 
         # print connect message
         self.connect_message()
