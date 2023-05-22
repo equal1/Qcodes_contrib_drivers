@@ -15,6 +15,7 @@ class SiglentChannel(InstrumentChannel):
     def channel_number(self):
         return self._channel_number
 
+
 class SiglentSDx(VisaInstrument):
     def __init__(self, *args, **kwargs):
         kwargs = ChainMap(kwargs, {"terminator": "\n"})
@@ -30,6 +31,15 @@ class SiglentSDx(VisaInstrument):
         Save screen dump to `file_name`
         .bmp extension automatically appended
         """
+        data_bytes = self.scdp_bmp_bytes()
+
+        with open(file_name + ".bmp", "wb") as f:
+            f.write(data_bytes)
+
+    def scdp_bmp_bytes(self) -> bytes:
+        """
+        Return SCreen DumP BitMaP as bytes.
+        """
         BMP_HEADER_SIZE = 0x14
         LEN_TERMCHAR = 1
         visa_handle = self.visa_handle
@@ -43,9 +53,4 @@ class SiglentSDx(VisaInstrument):
             count=(bmp_file_size - BMP_HEADER_SIZE + LEN_TERMCHAR),
             break_on_termchar=False,
         )
-
-        with open(file_name + ".bmp", "wb") as f:
-            f.write(header_bytes)
-            f.write(data_bytes[:-LEN_TERMCHAR])
-
-
+        return header_bytes + data_bytes[:-LEN_TERMCHAR]
