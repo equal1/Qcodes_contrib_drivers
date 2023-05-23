@@ -1,7 +1,7 @@
 from collections import ChainMap
 from typing import Any, Dict
 
-import qcodes.validators as vals
+# import qcodes.validators as vals
 from qcodes.instrument.channel import ChannelList
 
 from .sdg_channel import SiglentSDGChannel
@@ -10,7 +10,7 @@ from .sdx import SiglentSDx
 
 class SiglentSDGx(SiglentSDx):
     def __init__(self, *args, **kwargs):
-        n_channels = kwargs.pop("n_channels", None)
+        n_channels = kwargs.pop("n_channels", 0)
         channel_type = kwargs.pop("channel_type", SiglentSDGChannel)
         channel_kwargs = {"n_channels": n_channels}
         for ch_param in (
@@ -138,6 +138,6 @@ def _provide_defaults_to_dict_kwarg(
 ) -> Dict[str, Any]:
     if kwarg_name in kwargs:
         dict_item = kwargs[kwarg_name]
-        default_values = ChainMap(dict_item, default_values)
+        default_values = ChainMap(dict_item, default_values)  # type: ignore
 
     return {kwarg_name: default_values}

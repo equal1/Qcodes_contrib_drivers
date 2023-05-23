@@ -1,13 +1,5 @@
 from itertools import takewhile
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Iterator,
-    Optional,
-    Tuple,
-    TypeVar,
-)
+from typing import Any, Callable, Iterable, Optional, Tuple, TypeVar
 
 T = TypeVar("T")
 
@@ -16,7 +8,7 @@ def identity(x: T) -> T:
     return x
 
 
-def group_by_two(list_: Iterable[T]) -> Iterator[Tuple[T, T]]:
+def group_by_two(list_: Iterable[T]) -> Iterable[Tuple[T, T]]:
     return zip(*2 * (iter(list_),))
 
 
@@ -44,13 +36,20 @@ def none_to_empty_str(value):
     return "" if value is None else value
 
 
+def _remove_suffix(_s: str, suffix: str) -> str:
+    """
+    implements str.removesuffix for python 3.8
+    """
+    return _s if not len(suffix) or not _s.endswith(suffix) else _s[: -len(suffix)]
+
+
 def strip_unit(
     _suffix: str, /, *, then: Callable[[str], Any] = identity
 ) -> Callable[[str], Any]:
     if then is identity:
-        return lambda _s: _s.removesuffix(_suffix)
+        return lambda _s: _remove_suffix(_s, _suffix)
 
-    return lambda _s: then(_s.removesuffix(_suffix))
+    return lambda _s: then(_remove_suffix(_s, _suffix))
 
 
 def merge_dicts(*dicts: dict) -> dict:
@@ -68,7 +67,6 @@ def extract_standalone_first_field_or_regular_field(
     then: Callable[[str], Any] = identity,
     else_default=None,
 ) -> Callable[[str], Any]:
-
     if name is None:
 
         def result_func(response: str):
@@ -76,19 +74,21 @@ def extract_standalone_first_field_or_regular_field(
             first = next(response_items)
             return then(first)
 
+        return result_func
+
     else:
 
         def result_func(response: str):
             response_items = iter(response[_result_prefix_len:].split(","))
             next(response_items)
             return find_first_by_key(
-                name,
+                name,  # type: ignore
                 group_by_two(response_items),
                 transform_found=then,
                 not_found=else_default,
             )
 
-    return result_func
+        return result_func
 
 
 def extract_first_state_field_or_any_group_prefixed_field(
@@ -164,10 +164,9 @@ def extract_regular_field_before_group_or_group_prefixed_field(
     then: Callable[[str], Any] = identity,
     else_default=None,
 ) -> Callable[[str], Any]:
-
     if not name.startswith(_group + ","):
 
-        def result_func(response: str):
+        def result_func_standalone(response: str):
             items = takewhile(
                 lambda str: str != _group,
                 iter(response[_result_prefix_len:].split(",")),
@@ -180,11 +179,13 @@ def extract_regular_field_before_group_or_group_prefixed_field(
                 not_found=else_default,
             )
 
+        return result_func_standalone
+
     else:
         name = name[len(_group) + 1 :]
 
-        def result_func(response: str):
-            items = (iter(response[_result_prefix_len:].split(",")),)
+        def result_func_group(response: str):
+            items = iter(response[_result_prefix_len:].split(","))
 
             for item in items:
                 if item == _group:
@@ -199,4 +200,4 @@ def extract_regular_field_before_group_or_group_prefixed_field(
                 not_found=else_default,
             )
 
-    return result_func
+        return result_func_group

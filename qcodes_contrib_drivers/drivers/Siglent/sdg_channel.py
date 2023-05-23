@@ -1,20 +1,8 @@
 import functools
-from collections import ChainMap
-from enum import Enum
 from functools import partial
-from itertools import takewhile
-from typing import (
-    Any,
-    Dict,
-    Mapping,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import Dict, Mapping, Optional, Set, Tuple, Union
 
-from qcodes.instrument import InstrumentBase
-from qcodes.parameters import Group, GroupParameter, Parameter
+from qcodes.parameters import Parameter
 from qcodes.parameters import create_on_off_val_mapping as _create_on_off_val_mapping
 from qcodes.validators.validators import Enum as EnumVals
 from qcodes.validators.validators import Ints, MultiTypeOr, Numbers
@@ -35,9 +23,7 @@ def _add_none_to_empty_val_mapping(*val_mappings: Dict) -> Dict:
 
 
 class SiglentSDGChannel(SiglentChannel):
-    def __init__(
-        self, parent: SiglentSDx, name: str, channel_number: int, **kwargs
-    ):
+    def __init__(self, parent: SiglentSDx, name: str, channel_number: int, **kwargs):
         super().__init__(parent, name, channel_number)
         self._ch_num_prefix = (
             f"C{channel_number}:" if channel_number is not None else ""
@@ -74,7 +60,6 @@ class SiglentSDGChannel(SiglentChannel):
     # ---------------------------------------------------------------
 
     def _add_output_parameters(self, *, extra_params: Set[str]):
-
         ch_command = self._ch_num_prefix + "OUTP"
         set_cmd_ = ch_command + " "
         get_cmd = ch_command + "?"
@@ -149,7 +134,6 @@ class SiglentSDGChannel(SiglentChannel):
     # ---------------------------------------------------------------
 
     def _add_basic_wave_parameters(self, *, extra_params: Set[str]):
-
         ch_command = self._ch_num_prefix + "BSWV"
         set_cmd_ = ch_command + " "
         get_cmd = ch_command + "?"
@@ -243,7 +227,7 @@ class SiglentSDGChannel(SiglentChannel):
             vals=Numbers(),
             unit="dBm",
             # get_cmd=get_cmd,
-            # get_parser=extract_bswv_field("AMPDBM", then=strip_unit("dBm", then=float)),
+            # get_parser=extract_bswv_field("AMPDBM", then=strip_unit("dBm", then=float)),  # noqa: E501
             set_cmd=set_cmd_ + "AMPDBM,{}",
         )
 
@@ -488,7 +472,6 @@ class SiglentSDGChannel(SiglentChannel):
     # ---------------------------------------------------------------
 
     def _add_modulate_wave_parameters(self, *, extra_params: Set[str]):
-
         ch_command = self._ch_num_prefix + "MDWV"
         set_cmd_ = ch_command + " "
         get_cmd = ch_command + "?"
@@ -1017,7 +1000,6 @@ class SiglentSDGChannel(SiglentChannel):
     # ---------------------------------------------------------------
 
     def _add_sweep_wave_parameters(self, *, extra_params: Set[str]):
-
         ch_command = self._ch_num_prefix + "SWWV"
         set_cmd_ = ch_command + " "
         get_cmd = ch_command + "?"
@@ -1112,7 +1094,7 @@ class SiglentSDGChannel(SiglentChannel):
 
         # START, STOP
 
-        # the instrument does not allow setting the start value if it's above the stop value
+        # the instrument does not allow setting the start value if it's above the stop value  # noqa: E501
         def _set_sweep_start_frequency_raw_(self: SiglentSDGChannel, value: float):
             stop_frequency_param: Parameter = self.sweep_stop_frequency
             stop_freq = stop_frequency_param.cache.get()
@@ -1121,7 +1103,7 @@ class SiglentSDGChannel(SiglentChannel):
                 self.write_raw(set_cmd_ + f"STOP,{value:g}")
             self.write_raw(set_cmd_ + f"START,{value:g}")
 
-        # the instrument does not allow setting the stop value if it's below the start value
+        # the instrument does not allow setting the stop value if it's below the start value  # noqa: E501
         def _set_sweep_stop_frequency_raw_(self: SiglentSDGChannel, value: float):
             start_frequency_param: Parameter = self.sweep_start_frequency
             start_freq = start_frequency_param.cache.get()
@@ -1257,7 +1239,6 @@ class SiglentSDGChannel(SiglentChannel):
             )
 
         if "EDGE" in extra_params:
-
             self.add_parameter(
                 "sweep_trigger_edge",
                 label="Sweep trigger edge",
@@ -1414,7 +1395,7 @@ class SiglentSDGChannel(SiglentChannel):
             result_prefix_len,
         )
 
-        ranges: Mapping[str, Tuple[float, float]] = self._parent._ranges
+        ranges: Mapping[str, Tuple[int, int]] = self._parent._ranges
 
         self.add_parameter(
             "_raw_burst_wave",
@@ -1551,7 +1532,6 @@ class SiglentSDGChannel(SiglentChannel):
             )
 
         if "EDGE" in extra_params:
-
             self.add_parameter(
                 "burst_trigger_edge",
                 label="Burst trigger edge",
@@ -1837,7 +1817,7 @@ class SiglentSDGChannel(SiglentChannel):
 
         result_prefix_len = len(ch_command) + 1
 
-        ranges = self.parent._ranges
+        # ranges = self.parent._ranges
 
         self.add_parameter(
             "_raw_sync",
@@ -1875,14 +1855,13 @@ class SiglentSDGChannel(SiglentChannel):
         )
 
     def _add_invert_parameter(self):
-
         ch_command = self._ch_num_prefix + "INVT"
         set_cmd_ = ch_command + " "
         get_cmd = ch_command + "?"
 
         result_prefix_len = len(ch_command) + 1
 
-        ranges = self.parent._ranges
+        # ranges = self.parent._ranges
 
         self.add_parameter(
             "inverted",
