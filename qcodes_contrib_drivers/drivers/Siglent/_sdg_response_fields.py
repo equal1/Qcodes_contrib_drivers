@@ -36,13 +36,20 @@ def none_to_empty_str(value):
     return "" if value is None else value
 
 
+def _remove_suffix(_s: str, suffix: str) -> str:
+    """
+    implements str.removesuffix for python 3.8
+    """
+    return _s if not len(suffix) or not _s.endswith(suffix) else _s[: -len(suffix)]
+
+
 def strip_unit(
     _suffix: str, /, *, then: Callable[[str], Any] = identity
 ) -> Callable[[str], Any]:
     if then is identity:
-        return lambda _s: _s.removesuffix(_suffix)
+        return lambda _s: _remove_suffix(_s, _suffix)
 
-    return lambda _s: then(_s.removesuffix(_suffix))
+    return lambda _s: then(_remove_suffix(_s, _suffix))
 
 
 def merge_dicts(*dicts: dict) -> dict:
