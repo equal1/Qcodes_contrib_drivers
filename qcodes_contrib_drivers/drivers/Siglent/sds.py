@@ -5,8 +5,10 @@ from attr import dataclass
 
 import re
 import numpy as np
+import numpy.typing as npt
 
 from typing import Callable, Tuple
+
 
 class TriggerMode(Enum):
     AUTO = "AUTO"
@@ -44,16 +46,18 @@ class Siglent_SDS_120NxE(SiglentSDx):
     """
     Siglent SDS 1202/1204xE
     """
+
     def get_time_base(
         self,
         channel: int = 1,
         *,
         _RE=re.compile(r"^TDIV[ ]*([0-9eE+\-.,]+)[ ]*[sS]$"),
     ) -> int:
-        response = self.ask(f"TDIV?")
+        response = self.ask("TDIV?")
         groups = _RE.match(response)
+        assert groups is not None
         value = float(groups[1].replace(",", "."))
-        return value
+        return int(value)
 
     def get_num_samples(
         self,
@@ -63,6 +67,7 @@ class Siglent_SDS_120NxE(SiglentSDx):
     ) -> int:
         response = self.ask(f"SANU? C{channel:d}")
         groups = _RE.match(response)
+        assert groups is not None
         value = float(groups[1].replace(",", "."))
         if groups[2]:
             value *= 1000
@@ -73,8 +78,9 @@ class Siglent_SDS_120NxE(SiglentSDx):
         *,
         _RE=re.compile(r"^SARA[ ]*([0-9eE+\-.,]+)[ ]*([kKMG]?)[ ]*[sS]a[ ]*/[ ]*s$"),
     ) -> int:
-        response = self.ask(f"SARA?")
+        response = self.ask("SARA?")
         groups = _RE.match(response)
+        assert groups is not None
         value = float(groups[1].replace(",", "."))
         multiplier = {
             "k": 1e3,
@@ -93,6 +99,7 @@ class Siglent_SDS_120NxE(SiglentSDx):
     ) -> float:
         response = self.ask(f"C{channel:d}:VDIV?")
         groups = _RE.match(response)
+        assert groups is not None
         value = float(groups[1].replace(",", "."))
         return value
 
@@ -104,13 +111,14 @@ class Siglent_SDS_120NxE(SiglentSDx):
     ) -> float:
         response = self.ask(f"C{channel:d}:OFST?")
         groups = _RE.match(response)
+        assert groups is not None
         value = float(groups[1].replace(",", "."))
         return value
 
-    def get_raw_analog_waveform_data(self, channel: int = 1) -> np.array:
+    def get_raw_analog_waveform_data(self, channel: int = 1) -> npt.NDArray:
         return self.visa_handle.query_binary_values(
             f"C{channel:d}:WF? DAT2", "b", header_fmt="ieee", container=np.array
-        )
+        )  # type: ignore
 
     def get_math_vdiv(
         self,
@@ -119,27 +127,28 @@ class Siglent_SDS_120NxE(SiglentSDx):
     ) -> float:
         response = self.ask("MTVD?")
         groups = _RE.match(response)
+        assert groups is not None
         value = float(groups[1].replace(",", "."))
         return value
 
-    def get_raw_math_waveform_data(self) -> np.array:
-        self.write(f"MATH:WF? DAT2")
-        len_prefix = len(f"MATH:WF ALL,")
-        response_header = self.visa_handle.read_bytes(count=len_prefix)
+    def get_raw_math_waveform_data(self) -> npt.NDArray:
+        self.write("MATH:WF? DAT2")
+        len_prefix = len("MATH:WF ALL,")
+        response_header = self.visa_handle.read_bytes(count=len_prefix)  # noqa: F841
         return self.visa_handle.read_binary_values(
             "b", header_fmt="ieee", container=np.array
-        )
+        )  # type: ignore
 
-    def get_raw_digital_waveform_data(self, channel: int = 0) -> np.array:
+    def get_raw_digital_waveform_data(self, channel: int = 0) -> npt.NDArray:
         "Returns digital data. Each bit will be"
         self.write(f"D{channel:d}:WF? DAT2")
         len_prefix = len(f"D{channel:d}:WF ALL,")
-        response_part1 = self.visa_handle.read_bytes(count=len_prefix)
+        response_part1 = self.visa_handle.read_bytes(count=len_prefix)  # noqa: F841
         return self.visa_handle.read_binary_values(
             "B", header_fmt="ieee", container=np.array
-        )
+        )  # type: ignore
 
-    def get_channel_waveform_data(self, channel: int) -> np.array:
+    def get_channel_waveform_data(self, channel: int) -> npt.NDArray:
         Vdiv = self.get_vdiv(channel)
         Vofs = self.get_ofst(channel)
         return Vdiv * self.get_raw_analog_waveform_data(channel) / 25 + Vofs
@@ -149,14 +158,14 @@ class Siglent_SDS_120NxE(SiglentSDx):
         sample_rate: float,
         wfsu: WaveformSetup,
         get_num_samples: Callable[[], int],
-    ) -> np.array:
+    ) -> npt.NDArray:
         num_points = wfsu.num_points if wfsu.num_points != 0 else get_num_samples()
         spacing = wfsu.spacing if wfsu.spacing != 0 else 1
         start_idx = wfsu.start_idx
 
         return (np.arange(num_points) * spacing + start_idx) / sample_rate
 
-    def get_channel_waveform(self, channel: int) -> Tuple[np.array, np.array]:
+    def get_channel_waveform(self, channel: int) -> Tuple[npt.NDArray, npt.NDArray]:
         sample_rate = self.get_sample_rate()
         wfsu = self.get_waveform_setup()
         data = self.get_channel_waveform_data(channel)
@@ -165,7 +174,7 @@ class Siglent_SDS_120NxE(SiglentSDx):
         )
         return (axis, data)
 
-    def get_math_waveform(self) -> np.array:
+    def get_math_waveform(self) -> npt.NDArray:
         MtDiv = self.get_math_vdiv()
         return MtDiv * self.get_raw_math_waveform_data() / 25
 
@@ -185,16 +194,16 @@ class Siglent_SDS_120NxE(SiglentSDx):
         self,
         *,
         _RE=re.compile(
-            "WFSU [ ]*SP[ ]*,[ ]*([0-9]+),[ ]*NP[ ]*,[ ]*([0-9]+),[ ]*FP[ ]*,[ ]*([0-9]+)",
+            "WFSU [ ]*SP[ ]*,[ ]*([0-9]+),[ ]*NP[ ]*,[ ]*([0-9]+),[ ]*FP[ ]*,[ ]*([0-9]+)",  # noqa: E501
             re.IGNORECASE,
         ),
     ) -> WaveformSetup:  # (SP, NP, FP)
         response = self.ask("WFSU?")
         groups = _RE.match(response)
+        assert groups is not None
         return WaveformSetup(
             spacing=int(groups[1]), num_points=int(groups[2]), start_idx=int(groups[3])
         )
 
     def set_waveform_setup(self, wfsu: WaveformSetup):
         self.write(f"WFSU SP,{wfsu.spacing},NP,{wfsu.num_points},FP,{wfsu.start_idx}")
-

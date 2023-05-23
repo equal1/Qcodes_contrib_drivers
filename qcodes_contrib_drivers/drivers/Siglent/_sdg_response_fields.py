@@ -1,13 +1,5 @@
 from itertools import takewhile
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Iterator,
-    Optional,
-    Tuple,
-    TypeVar,
-)
+from typing import Any, Callable, Iterable, Optional, Tuple, TypeVar
 
 T = TypeVar("T")
 
@@ -16,7 +8,7 @@ def identity(x: T) -> T:
     return x
 
 
-def group_by_two(list_: Iterable[T]) -> Iterator[Tuple[T, T]]:
+def group_by_two(list_: Iterable[T]) -> Iterable[Tuple[T, T]]:
     return zip(*2 * (iter(list_),))
 
 
@@ -167,7 +159,7 @@ def extract_regular_field_before_group_or_group_prefixed_field(
 
     if not name.startswith(_group + ","):
 
-        def result_func(response: str):
+        def result_func(response: str): # type: ignore
             items = takewhile(
                 lambda str: str != _group,
                 iter(response[_result_prefix_len:].split(",")),
@@ -184,7 +176,7 @@ def extract_regular_field_before_group_or_group_prefixed_field(
         name = name[len(_group) + 1 :]
 
         def result_func(response: str):
-            items = (iter(response[_result_prefix_len:].split(",")),)
+            items = iter(response[_result_prefix_len:].split(","))
 
             for item in items:
                 if item == _group:
