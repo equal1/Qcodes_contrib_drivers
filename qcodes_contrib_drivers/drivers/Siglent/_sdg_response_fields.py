@@ -60,7 +60,6 @@ def extract_standalone_first_field_or_regular_field(
     then: Callable[[str], Any] = identity,
     else_default=None,
 ) -> Callable[[str], Any]:
-
     if name is None:
 
         def result_func(response: str):
@@ -68,19 +67,21 @@ def extract_standalone_first_field_or_regular_field(
             first = next(response_items)
             return then(first)
 
+        return result_func
+
     else:
 
         def result_func(response: str):
             response_items = iter(response[_result_prefix_len:].split(","))
             next(response_items)
             return find_first_by_key(
-                name,
+                name,  # type: ignore
                 group_by_two(response_items),
                 transform_found=then,
                 not_found=else_default,
             )
 
-    return result_func
+        return result_func
 
 
 def extract_first_state_field_or_any_group_prefixed_field(
@@ -156,10 +157,9 @@ def extract_regular_field_before_group_or_group_prefixed_field(
     then: Callable[[str], Any] = identity,
     else_default=None,
 ) -> Callable[[str], Any]:
-
     if not name.startswith(_group + ","):
 
-        def result_func(response: str): # type: ignore
+        def result_func_standalone(response: str):
             items = takewhile(
                 lambda str: str != _group,
                 iter(response[_result_prefix_len:].split(",")),
@@ -172,10 +172,12 @@ def extract_regular_field_before_group_or_group_prefixed_field(
                 not_found=else_default,
             )
 
+        return result_func_standalone
+
     else:
         name = name[len(_group) + 1 :]
 
-        def result_func(response: str):
+        def result_func_group(response: str):
             items = iter(response[_result_prefix_len:].split(","))
 
             for item in items:
@@ -191,4 +193,4 @@ def extract_regular_field_before_group_or_group_prefixed_field(
                 not_found=else_default,
             )
 
-    return result_func
+        return result_func_group

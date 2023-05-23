@@ -117,8 +117,11 @@ class Siglent_SDS_120NxE(SiglentSDx):
 
     def get_raw_analog_waveform_data(self, channel: int = 1) -> npt.NDArray:
         return self.visa_handle.query_binary_values(
-            f"C{channel:d}:WF? DAT2", "b", header_fmt="ieee", container=np.array
-        )  # type: ignore
+            f"C{channel:d}:WF? DAT2",
+            "b",
+            header_fmt="ieee",
+            container=np.array,  # type: ignore
+        )
 
     def get_math_vdiv(
         self,
@@ -136,8 +139,10 @@ class Siglent_SDS_120NxE(SiglentSDx):
         len_prefix = len("MATH:WF ALL,")
         response_header = self.visa_handle.read_bytes(count=len_prefix)  # noqa: F841
         return self.visa_handle.read_binary_values(
-            "b", header_fmt="ieee", container=np.array
-        )  # type: ignore
+            "b",
+            header_fmt="ieee",
+            container=np.array,  # type: ignore
+        )
 
     def get_raw_digital_waveform_data(self, channel: int = 0) -> npt.NDArray:
         "Returns digital data. Each bit will be"
@@ -145,8 +150,10 @@ class Siglent_SDS_120NxE(SiglentSDx):
         len_prefix = len(f"D{channel:d}:WF ALL,")
         response_part1 = self.visa_handle.read_bytes(count=len_prefix)  # noqa: F841
         return self.visa_handle.read_binary_values(
-            "B", header_fmt="ieee", container=np.array
-        )  # type: ignore
+            "B",
+            header_fmt="ieee",
+            container=np.array,  # type: ignore
+        )
 
     def get_channel_waveform_data(self, channel: int) -> npt.NDArray:
         Vdiv = self.get_vdiv(channel)
